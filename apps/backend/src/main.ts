@@ -13,7 +13,7 @@ async function bootstrap() {
       console.log('✅ TypeORM Connection established');
       const database = String(connection.options.database || 'unknown');
       const host = String(connection.options.host || 'unknown');
-      const port = connection.options.port || 5432;
+      const port = Number(connection.options.port) || 5432;
       console.log(`📊 Database: ${database}`);
       console.log(`🔌 Host: ${host}:${port}`);
     }
