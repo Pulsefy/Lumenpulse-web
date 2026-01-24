@@ -4,14 +4,18 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { TestExceptionController } from './test-exception.controller';
+import { StellarController } from './stellar/stellar.controller';
+import { StellarService } from './stellar/stellar.service';
+import stellarConfig from './stellar/config/stellar.config';
 
 @Module({
-  controllers: [AppController, TestExceptionController],
-  providers: [AppService],
+  controllers: [AppController, TestExceptionController, StellarController],
+  providers: [AppService, StellarService],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+      load: [stellarConfig],
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
