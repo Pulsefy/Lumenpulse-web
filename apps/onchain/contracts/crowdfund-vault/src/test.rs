@@ -1,7 +1,5 @@
-#![cfg(test)]
-
-use crate::{CrowdfundVaultContract, CrowdfundVaultContractClient};
 use crate::errors::CrowdfundError;
+use crate::{CrowdfundVaultContract, CrowdfundVaultContractClient};
 use soroban_sdk::{
     symbol_short,
     testutils::Address as _,
@@ -9,7 +7,10 @@ use soroban_sdk::{
     Address, Env,
 };
 
-fn create_token_contract<'a>(env: &Env, admin: &Address) -> (TokenClient<'a>, StellarAssetClient<'a>) {
+fn create_token_contract<'a>(
+    env: &Env,
+    admin: &Address,
+) -> (TokenClient<'a>, StellarAssetClient<'a>) {
     let contract_address = env.register_stellar_asset_contract_v2(admin.clone());
     (
         TokenClient::new(env, &contract_address.address()),
@@ -17,7 +18,15 @@ fn create_token_contract<'a>(env: &Env, admin: &Address) -> (TokenClient<'a>, St
     )
 }
 
-fn setup_test<'a>(env: &Env) -> (CrowdfundVaultContractClient<'a>, Address, Address, Address, TokenClient<'a>) {
+fn setup_test<'a>(
+    env: &Env,
+) -> (
+    CrowdfundVaultContractClient<'a>,
+    Address,
+    Address,
+    Address,
+    TokenClient<'a>,
+) {
     let admin = Address::generate(env);
     let owner = Address::generate(env);
     let user = Address::generate(env);
@@ -224,7 +233,10 @@ fn test_withdraw_after_approval() {
     client.withdraw(&project_id, &withdraw_amount);
 
     // Verify balance reduced
-    assert_eq!(client.get_balance(&project_id), deposit_amount - withdraw_amount);
+    assert_eq!(
+        client.get_balance(&project_id),
+        deposit_amount - withdraw_amount
+    );
 
     // Verify project data updated
     let project = client.get_project(&project_id);
