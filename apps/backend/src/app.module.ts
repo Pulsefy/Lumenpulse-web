@@ -7,8 +7,6 @@ import { TestExceptionController } from './test-exception.controller';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
-  controllers: [AppController, TestExceptionController],
-  providers: [AppService],
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
@@ -24,7 +22,7 @@ import { AuthModule } from './auth/auth.module';
         password: configService.get<string>('DB_PASSWORD'),
         database: configService.get<string>('DB_DATABASE'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        synchronize: false, // Always false for production, and recommended false when using migrations
+        synchronize: false,
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
         logging: true,
       }),
@@ -32,5 +30,7 @@ import { AuthModule } from './auth/auth.module';
     }),
     AuthModule,
   ],
+  controllers: [AppController, TestExceptionController],
+  providers: [AppService],
 })
 export class AppModule {}
