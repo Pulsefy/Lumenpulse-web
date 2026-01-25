@@ -7,6 +7,8 @@ apscheduler
 stellar-sdk
 pytest
 flake8
+redis
+numpy
 stellar-sdk>=8.2.0  
 
 # For development/testing

@@ -129,7 +129,13 @@ impl CrowdfundVaultContract {
 
         // Transfer tokens from user to contract
         let contract_address = env.current_contract_address();
-        token::transfer(&env, &project.token_address, &user, &contract_address, &amount);
+        token::transfer(
+            &env,
+            &project.token_address,
+            &user,
+            &contract_address,
+            &amount,
+        );
 
         // Update project balance
         let balance_key = DataKey::ProjectBalance(project_id, project.token_address.clone());
@@ -148,7 +154,11 @@ impl CrowdfundVaultContract {
     }
 
     /// Approve milestone for a project (admin only)
-    pub fn approve_milestone(env: Env, admin: Address, project_id: u64) -> Result<(), CrowdfundError> {
+    pub fn approve_milestone(
+        env: Env,
+        admin: Address,
+        project_id: u64,
+    ) -> Result<(), CrowdfundError> {
         // Check if contract is initialized
         let stored_admin: Address = env
             .storage()
