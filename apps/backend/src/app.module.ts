@@ -3,6 +3,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { TestExceptionController } from './test-exception.controller';
+import { SentimentModule } from './sentiment/sentiment.module';
 import { NewsModule } from './news/news.module';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
@@ -32,11 +34,12 @@ import { TestController } from './test/test.controller';
       }),
       inject: [ConfigService],
     }),
+    SentimentModule,
     NewsModule,
     AuthModule,
     UsersModule,
   ],
-  controllers: [AppController, TestController],
+  controllers: [AppController, TestController, TestExceptionController],
   providers: [AppService],
 })
 export class AppModule implements NestModule {

@@ -13,6 +13,10 @@ import {
   CoinDeskSingleArticleResponse,
 } from './interfaces/coindesk-response.interface';
 
+import { Logger } from '@nestjs/common';
+
+jest.spyOn(Logger.prototype, 'error').mockImplementation(() => {});
+
 describe('NewsProviderService', () => {
   let service: NewsProviderService;
   let httpService: HttpService;
