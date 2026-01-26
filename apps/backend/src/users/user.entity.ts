@@ -14,17 +14,17 @@ export class User {
   @Column({ unique: true })
   email: string;
 
-  @Column({ nullable: true })
-  displayName: string;
-
-  @Column({ nullable: true })
-  bio: string;
-
-  @Column({ nullable: true })
-  avatarUrl: string;
-
   @Column()
   passwordHash: string;
+
+  @Column({ nullable: true })
+  displayName?: string;
+
+  @Column({ nullable: true })
+  bio?: string;
+
+  @Column({ nullable: true })
+  avatarUrl?: string;
 
   @CreateDateColumn()
   createdAt: Date;

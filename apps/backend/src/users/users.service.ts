@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
+
 import { User } from './user.entity';
 import { UpdateUserDto } from './dtos/update-user.dto';
 
@@ -8,25 +9,35 @@ import { UpdateUserDto } from './dtos/update-user.dto';
 export class UsersService {
   constructor(
     @InjectRepository(User)
-    private usersRepository: Repository<User>,
+    private readonly usersRepository: Repository<User>,
   ) {}
 
-  async findById(userId: string): Promise<User | null> {
-    return this.usersRepository.findOne({ where: { id: userId } });
+  async create(user: Partial<User>): Promise<User> {
+    const newUser = this.usersRepository.create(user);
+    return this.usersRepository.save(newUser);
+  }
+
+  async findAll(): Promise<User[]> {
+    return this.usersRepository.find();
+  }
+
+  async findById(id: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { id } });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    return this.usersRepository.findOne({ where: { email } });
   }
 
   async update(
     userId: string,
     updateUserDto: UpdateUserDto,
   ): Promise<User | null> {
-    const user = await this.usersRepository.findOne({ where: { id: userId } });
+    const user = await this.findById(userId);
+    if (!user) return null;
 
-    if (!user) {
-      return null;
-    }
-
-    // Prevent password update
-    const { password, ...allowedUpdates } = updateUserDto as any;
+    // prevent password update
+    const { password, passwordHash, ...allowedUpdates } = updateUserDto as any;
 
     Object.assign(user, allowedUpdates);
     return this.usersRepository.save(user);
