@@ -351,6 +351,199 @@ fn test_multiple_projects() {
 }
 
 #[test]
+fn test_fund_matching_pool() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, admin, _, _, token_client) = setup_test(&env);
+
+    // Initialize contract
+    client.initialize(&admin);
+
+    // Fund matching pool
+    let pool_amount: i128 = 10_000_000;
+    client.fund_matching_pool(&admin, &token_client.address, &pool_amount);
+
+    // Verify matching pool balance
+    assert_eq!(
+        client.get_matching_pool_balance(&token_client.address),
+        pool_amount
+    );
+}
+
+#[test]
+fn test_fund_matching_pool_unauthorized() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, admin, owner, _, token_client) = setup_test(&env);
+
+    // Initialize contract
+    client.initialize(&admin);
+
+    // Non-admin tries to fund matching pool - should fail
+    let result = client.try_fund_matching_pool(&owner, &token_client.address, &10_000_000);
+    assert_eq!(result, Err(Ok(CrowdfundError::Unauthorized)));
+}
+
+#[test]
+fn test_calculate_match_single_contributor() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, admin, owner, user, token_client) = setup_test(&env);
+
+    // Initialize contract
+    client.initialize(&admin);
+
+    // Create project
+    let project_id = client.create_project(
+        &owner,
+        &symbol_short!("TestProj"),
+        &1_000_000,
+        &token_client.address,
+    );
+
+    // Deposit funds from single contributor
+    let contribution: i128 = 1_000_000; // 1M tokens
+    client.deposit(&user, &project_id, &contribution);
+
+    // Calculate match
+    // sqrt(1_000_000) = 1000
+    // match = 1000^2 = 1_000_000
+    let match_amount = client.calculate_match(&project_id);
+    assert!(match_amount > 0);
+
+    // Verify contributor count
+    assert_eq!(client.get_contributor_count(&project_id), 1);
+
+    // Verify contribution amount
+    assert_eq!(client.get_contribution(&project_id, &user), contribution);
+}
+
+#[test]
+fn test_calculate_match_multiple_contributors() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, admin, owner, _, token_client) = setup_test(&env);
+
+    // Initialize contract
+    client.initialize(&admin);
+
+    // Create project
+    let project_id = client.create_project(
+        &owner,
+        &symbol_short!("TestProj"),
+        &1_000_000,
+        &token_client.address,
+    );
+
+    // Create multiple users
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
+    let user3 = Address::generate(&env);
+
+    // Mint tokens to users
+    let (_, token_admin_client) = create_token_contract(&env, &admin);
+    token_admin_client.mint(&user1, &10_000_000);
+    token_admin_client.mint(&user2, &10_000_000);
+    token_admin_client.mint(&user3, &10_000_000);
+
+    // Different contributions
+    // user1: 100 (sqrt = 10)
+    // user2: 400 (sqrt = 20)
+    // user3: 900 (sqrt = 30)
+    // sum of sqrt = 60
+    // match = 60^2 = 3600
+    client.deposit(&user1, &project_id, &100);
+    client.deposit(&user2, &project_id, &400);
+    client.deposit(&user3, &project_id, &900);
+
+    // Calculate match
+    let match_amount = client.calculate_match(&project_id);
+
+    // Verify match is approximately 3600 (allowing for fixed-point rounding)
+    // sqrt(100) ≈ 10, sqrt(400) = 20, sqrt(900) = 30
+    // sum = 60, match = 3600
+    assert!((3500..=3700).contains(&match_amount));
+
+    // Verify contributor count
+    assert_eq!(client.get_contributor_count(&project_id), 3);
+}
+
+#[test]
+fn test_calculate_match_no_contributors() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, admin, owner, _, token_client) = setup_test(&env);
+
+    // Initialize contract
+    client.initialize(&admin);
+
+    // Create project
+    let project_id = client.create_project(
+        &owner,
+        &symbol_short!("TestProj"),
+        &1_000_000,
+        &token_client.address,
+    );
+
+    // Calculate match with no contributors
+    let match_amount = client.calculate_match(&project_id);
+    assert_eq!(match_amount, 0);
+}
+
+#[test]
+fn test_distribute_match() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, admin, owner, user, token_client) = setup_test(&env);
+
+    // Initialize contract
+    client.initialize(&admin);
+
+    // Create project
+    let project_id = client.create_project(
+        &owner,
+        &symbol_short!("TestProj"),
+        &1_000_000,
+        &token_client.address,
+    );
+
+    // Deposit funds
+    let contribution: i128 = 1_000_000;
+    client.deposit(&user, &project_id, &contribution);
+
+    // Fund matching pool
+    let pool_amount: i128 = 10_000_000;
+    let (_, token_admin_client) = create_token_contract(&env, &admin);
+    token_admin_client.mint(&admin, &pool_amount);
+    client.fund_matching_pool(&admin, &token_client.address, &pool_amount);
+
+    // Get initial balance
+    let initial_balance = client.get_balance(&project_id);
+
+    // Calculate and distribute match
+    let match_amount = client.calculate_match(&project_id);
+    let distributed = client.distribute_match(&project_id);
+
+    // Verify match was distributed
+    assert!(distributed > 0);
+    assert_eq!(distributed, match_amount);
+
+    // Verify project balance increased
+    let new_balance = client.get_balance(&project_id);
+    assert_eq!(new_balance, initial_balance + distributed);
+
+    // Verify matching pool decreased
+    let remaining_pool = client.get_matching_pool_balance(&token_client.address);
+    assert_eq!(remaining_pool, pool_amount - distributed);
+}
+
+#[test]
 fn test_contributor_registration() {
     let env = Env::default();
     env.mock_all_auths();
@@ -399,9 +592,9 @@ fn test_events_emission() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let (client, admin, owner, user, token_client) = setup_test(&env);
+    let (client, admin, owner, _user, token_client) = setup_test(&env);
 
-    // Initialize
+    // Initialize contract
     client.initialize(&admin);
 
     // Create project
@@ -412,6 +605,68 @@ fn test_events_emission() {
         &token_client.address,
     );
 
+    // Deposit funds from multiple users to create large match
+    let user1 = Address::generate(&env);
+    let user2 = Address::generate(&env);
+    let (_, token_admin_client) = create_token_contract(&env, &admin);
+    token_admin_client.mint(&user1, &10_000_000);
+    token_admin_client.mint(&user2, &10_000_000);
+
+    // Large contributions that will create a large match
+    client.deposit(&user1, &project_id, &1_000_000);
+    client.deposit(&user2, &project_id, &1_000_000);
+
+    // Fund matching pool with small amount
+    let pool_amount: i128 = 100_000; // Less than the calculated match
+    token_admin_client.mint(&admin, &pool_amount);
+    client.fund_matching_pool(&admin, &token_client.address, &pool_amount);
+
+    // Calculate match (should be large)
+    let match_amount = client.calculate_match(&project_id);
+    assert!(match_amount > pool_amount);
+
+    // Distribute match (should only distribute what's available)
+    let distributed = client.distribute_match(&project_id);
+
+    // Should only distribute the pool amount, not the full match
+    assert_eq!(distributed, pool_amount);
+
+    // Verify pool is empty
+    assert_eq!(client.get_matching_pool_balance(&token_client.address), 0);
+}
+
+#[test]
+fn test_multiple_contributions_same_user() {
+    let env = Env::default();
+    env.mock_all_auths();
+
+    let (client, admin, owner, user, token_client) = setup_test(&env);
+
+    // Initialize contract
+    client.initialize(&admin);
+
+    // Create project
+    let project_id = client.create_project(
+        &owner,
+        &symbol_short!("TestProj"),
+        &1_000_000,
+        &token_client.address,
+    );
+
+    // Same user makes multiple contributions
+    client.deposit(&user, &project_id, &100);
+    client.deposit(&user, &project_id, &300); // Total: 400
+
+    // Should only count as one contributor
+    assert_eq!(client.get_contributor_count(&project_id), 1);
+
+    // Total contribution should be 400
+    assert_eq!(client.get_contribution(&project_id, &user), 400);
+
+    // Calculate match: sqrt(400) = 20, match = 20^2 = 400
+    let match_amount = client.calculate_match(&project_id);
+    // Should be approximately 400 (allowing for rounding)
+    assert!((390..=410).contains(&match_amount));
     // Deposit
     client.deposit(&user, &project_id, &500_000);
 

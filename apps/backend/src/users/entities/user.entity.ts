@@ -17,7 +17,7 @@ export class User {
   email: string;
 
   @Column({ type: 'varchar', length: 255, nullable: true })
-  passwordHash: string | null;
+  passwordHash: string;
 
   @CreateDateColumn({ type: 'timestamptz' })
   createdAt: Date;

@@ -1,37 +1,49 @@
-import { Controller, Post, Body, HttpCode, HttpStatus } from '@nestjs/common';
 import {
-  ApiTags,
-  ApiOperation,
-  ApiResponse,
-  ApiBody,
-} from '@nestjs/swagger';
+  Controller,
+  Request,
+  Post,
+  UseGuards,
+  Get,
+  Body,
+  UnauthorizedException,
+  UseInterceptors,
+  ClassSerializerInterceptor,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
+import { UsersService } from '../users/users.service';
+import * as bcrypt from 'bcrypt';
+import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
-import { UserResponseDto } from './dto/user-response.dto';
+import { ProfileDto } from './dto/profile.dto';
 
-@ApiTags('Authentication')
 @Controller('auth')
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private authService: AuthService,
+    private usersService: UsersService,
+  ) {}
+
+  @Post('login')
+  async login(@Body() body: LoginDto) {
+    const user = await this.authService.validateUser(body.email, body.password);
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    return this.authService.login(user);
+  }
 
   @Post('register')
-  @HttpCode(HttpStatus.CREATED)
-  @ApiOperation({ summary: 'Register a new user with email and password' })
-  @ApiBody({ type: RegisterDto })
-  @ApiResponse({
-    status: 201,
-    description: 'User successfully registered',
-    type: UserResponseDto,
-  })
-  @ApiResponse({
-    status: 409,
-    description: 'Email already exists',
-  })
-  @ApiResponse({
-    status: 400,
-    description: 'Invalid input data',
-  })
-  async register(@Body() registerDto: RegisterDto): Promise<UserResponseDto> {
-    return this.authService.register(registerDto);
+  async register(@Body() body: RegisterDto) {
+    const hash = await bcrypt.hash(body.password, 10);
+
+    return this.usersService.create({ email: body.email, passwordHash: hash });
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @UseInterceptors(ClassSerializerInterceptor)
+  @Get('profile')
+  getProfile(@Request() req: { user: ProfileDto }) {
+    return new ProfileDto(req.user);
   }
 }

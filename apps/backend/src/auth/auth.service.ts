@@ -1,56 +1,38 @@
-import {
-  Injectable,
-  ConflictException,
-  InternalServerErrorException,
-} from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Injectable } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { User } from '../database/entities/user.entity';
-import { RegisterDto } from './dto/register.dto';
-import { UserResponseDto } from './dto/user-response.dto';
+import { User } from '../users/entities/user.entity';
 
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepository: Repository<User>,
+    private usersService: UsersService,
+    private jwtService: JwtService,
   ) {}
 
-  async register(registerDto: RegisterDto): Promise<UserResponseDto> {
-    const { email, password } = registerDto;
+  async validateUser(
+    email: string,
+    pass: string,
+  ): Promise<Omit<User, 'passwordHash'> | null> {
+    const user = await this.usersService.findByEmail(email);
 
-    // Check if user already exists
-    const existingUser = await this.userRepository.findOne({
-      where: { email },
-    });
-
-    if (existingUser) {
-      throw new ConflictException('Email already exists');
+    if (
+      user &&
+      user.passwordHash &&
+      (await bcrypt.compare(pass, user.passwordHash))
+    ) {
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { passwordHash, ...result } = user;
+      return result;
     }
+    return null;
+  }
 
-    // Hash the password
-    const saltRounds = 10;
-    const hashedPassword = await bcrypt.hash(password, saltRounds);
-
-    // Create new user
-    const user = this.userRepository.create({
-      email,
-      password: hashedPassword,
-    });
-
-    try {
-      const savedUser = await this.userRepository.save(user);
-
-      // Return user without password
-      return {
-        id: savedUser.id,
-        email: savedUser.email,
-        createdAt: savedUser.createdAt,
-        updatedAt: savedUser.updatedAt,
-      };
-    } catch (error) {
-      throw new InternalServerErrorException('Failed to create user');
-    }
+  login(user: { id: string; email: string }) {
+    const payload = { email: user.email, sub: user.id };
+    return {
+      access_token: this.jwtService.sign(payload),
+    };
   }
 }

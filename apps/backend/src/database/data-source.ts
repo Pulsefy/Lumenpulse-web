@@ -10,6 +10,10 @@ export default new DataSource({
   username: process.env.DB_USERNAME || 'postgres',
   password: process.env.DB_PASSWORD || 'postgres',
   database: process.env.DB_NAME || 'lumenpulse',
-  entities: ['src/**/*.entity.ts'],
-  migrations: ['src/database/migrations/*.ts'],
+
+  entities: ['dist/**/*.entity.js', 'src/**/*.entity.ts'],
+
+  migrations: ['dist/database/migrations/*.js', 'src/database/migrations/*.ts'],
+
+  logging: true,
 });

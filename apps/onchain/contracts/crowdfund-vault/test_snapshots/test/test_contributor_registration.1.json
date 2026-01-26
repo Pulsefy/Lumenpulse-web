@@ -265,7 +265,7 @@
             "key": {
               "vec": [
                 {
-                  "symbol": "Contributor"
+                  "symbol": "RegisteredContributor"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
@@ -285,7 +285,7 @@
                 "key": {
                   "vec": [
                     {
-                      "symbol": "Contributor"
+                      "symbol": "RegisteredContributor"
                     },
                     {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"

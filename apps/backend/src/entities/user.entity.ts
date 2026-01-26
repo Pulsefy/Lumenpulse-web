@@ -15,9 +15,12 @@ export class User {
   email: string;
 
   @Column()
+  passwordHash: string;
+
+  @Column({ nullable: true })
   firstName: string;
 
-  @Column()
+  @Column({ nullable: true })
   lastName: string;
 
   @CreateDateColumn()
