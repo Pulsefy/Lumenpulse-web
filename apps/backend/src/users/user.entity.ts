@@ -1,19 +1,34 @@
-// src/users/user.entity.ts
-import { Entity, PrimaryGeneratedColumn, CreateDateColumn, UpdateDateColumn, OneToMany } from 'typeorm';
-import { PortfolioAsset } from '../portfolio/portfolio-asset.entity'; // adjust path if needed
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  CreateDateColumn,
+  UpdateDateColumn,
+} from 'typeorm';
 
 @Entity('users')
 export class User {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @CreateDateColumn({ type: 'timestamp with time zone' })
+  @Column({ unique: true })
+  email: string;
+
+  @Column()
+  passwordHash: string;
+
+  @Column({ nullable: true })
+  displayName?: string;
+
+  @Column({ nullable: true })
+  bio?: string;
+
+  @Column({ nullable: true })
+  avatarUrl?: string;
+
+  @CreateDateColumn()
   createdAt: Date;
 
-  @UpdateDateColumn({ type: 'timestamp with time zone' })
+  @UpdateDateColumn()
   updatedAt: Date;
-
-  // Optional: One-to-Many relation to PortfolioAsset
-  @OneToMany(() => PortfolioAsset, asset => asset.user)
-  portfolioAssets: PortfolioAsset[];
 }
