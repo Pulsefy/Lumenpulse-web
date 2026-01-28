@@ -3,18 +3,18 @@ import {
   Post,
   Get,
   Body,
-  UnauthorizedException,
   UseGuards,
   UseInterceptors,
   ClassSerializerInterceptor,
+  UnauthorizedException,
   Req,
 } from '@nestjs/common';
 import { Request } from 'express';
-import * as bcrypt from 'bcryptjs';
+import * as bcrypt from 'bcrypt';
 
-import { AuthService, SafeUser } from './auth.service';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { AuthService } from './auth.service';
 import { UsersService } from '../users/users.service';
+import { JwtAuthGuard } from './jwt-auth.guard';
 
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
@@ -29,29 +29,17 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() body: LoginDto) {
-    const user: SafeUser | null = await this.authService.validateUser(
-      body.email,
-      body.password,
-    );
+    const user = await this.authService.validateUser(body.email, body.password);
 
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
+    if (!user) throw new UnauthorizedException();
 
     return this.authService.login({ id: user.id, email: user.email });
   }
 
   @Post('register')
   async register(@Body() body: RegisterDto) {
-    const passwordHash: string = await bcrypt.hash(body.password, 10);
-
-    const user = await this.usersService.create({
-      email: body.email,
-      passwordHash,
-    });
-
-    const { passwordHash: _, ...safeUser } = user; // Remove password hash
-    return safeUser;
+    const passwordHash = await bcrypt.hash(body.password, 10);
+    return this.usersService.create({ email: body.email, passwordHash });
   }
 
   @UseGuards(JwtAuthGuard)
