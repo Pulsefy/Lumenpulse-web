@@ -65,6 +65,6 @@ export class User {
   isActive: boolean;
 
   // Optional: One-to-Many relation to PortfolioAsset
-  @OneToMany(() => PortfolioAsset, asset => asset.user)
+  @OneToMany(() => PortfolioAsset, (asset) => asset.user)
   portfolioAssets: PortfolioAsset[];
 }
